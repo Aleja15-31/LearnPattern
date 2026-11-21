@@ -1,0 +1,53 @@
+# DEPENDENCIAS DEL MODULO DE INTELIGENCIA ARTIFICIAL
+
+# 1. Manipulacion y procesamiento de datos
+# pandas: permite cargar, organizar, filtrar y analizar los datos almacenados en tablas (DataFrames).
+# numpy: permite realizar operaciones matematicas y numericas necesarias para preparar los datos de entrada de los modelos.
+pandas>=2.2.0
+numpy>=1.26.0
+
+# 2. Construccion y entrenamiento de modelos de Machine Learning
+# scikit-learn proporciona las herramientas necesarias para implementar los siguientes algoritmos:
+#
+# - Regresion Lineal:
+#   Se utiliza para identificar relaciones entre variables
+#   numericas y realizar estimaciones de valores.
+#
+# - Red Neuronal Densa (MLPRegressor):
+#   Permite aprender relaciones y patrones mas complejos
+#   mediante capas de neuronas interconectadas.
+#
+# - K-Means:
+#   Es un algoritmo de agrupamiento no supervisado que
+#   permite identificar grupos de datos con caracteristicas
+#   similares sin necesidad de etiquetas previas.
+scikit-learn>=1.5.0
+
+# 3. Almacenamiento y recuperacion de modelos entrenados
+# joblib: permite guardar los modelos de Regresion Lineal,
+# Red Neuronal Densa y K-Means despues de su entrenamiento,
+# para reutilizarlos sin necesidad de entrenarlos nuevamente.
+joblib>=1.4.0
+
+# 4. Desarrollo y ejecucion del servicio web de IA
+# fastapi: permite crear una API REST para exponer las
+# funcionalidades de inteligencia artificial y permitir
+# que otros microservicios, como el desarrollado en Java,
+# puedan consumirlas mediante solicitudes HTTP.
+#
+# uvicorn: ejecuta el servidor web que pone en funcionamiento
+# la aplicacion FastAPI.
+#
+# pydantic: permite validar y estructurar los datos que ingresan y salen de los endpoints de la API.
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pydantic>=2.9.0
+
+# 5. Pruebas automatizadas
+# pytest: permite crear y ejecutar pruebas para verificar
+# el funcionamiento de los modelos y sus funcionalidades.
+#
+# httpx: permite realizar solicitudes HTTP durante las
+# pruebas de los endpoints de FastAPI.
+pytest>=8.3.0
+httpx>=0.27.0
