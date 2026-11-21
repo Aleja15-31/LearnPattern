@@ -19,3 +19,6 @@ venv/
 # Archivos del sistema operativo
 .DS_Store
 Thumbs.db
+
+.pytest_cache/
+ai/artifacts/

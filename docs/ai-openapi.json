@@ -1,0 +1,531 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LearnPattern AI Service",
+    "description": "Servicio de inteligencia artificial para estimar rendimiento academico, agrupar patrones de habitos con K-Means, simular cambios y generar recomendaciones orientativas.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Verifica que el servicio este activo y con modelos cargados.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/model-info": {
+      "get": {
+        "summary": "Get Model Info",
+        "description": "Devuelve las metricas de evaluacion, promedios del dataset y grupos K-Means.",
+        "operationId": "get_model_info_model_info_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Model Info Model Info Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predict": {
+      "post": {
+        "summary": "Predict Performance",
+        "description": "Analiza los habitos ingresados y devuelve estimacion, grupo y recomendaciones.",
+        "operationId": "predict_performance_predict_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentHabitsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Predict Performance Predict Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/simulate": {
+      "post": {
+        "summary": "Simulate Changes",
+        "description": "Simula como cambia la nota estimada al ajustar uno o varios habitos.",
+        "operationId": "simulate_changes_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Simulate Changes Simulate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HabitChangesInput": {
+        "properties": {
+          "study_hours_per_day": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 24.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Study Hours Per Day"
+          },
+          "social_media_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 24.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Social Media Hours"
+          },
+          "netflix_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 24.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Netflix Hours"
+          },
+          "attendance_percentage": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attendance Percentage"
+          },
+          "sleep_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 24.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sleep Hours"
+          },
+          "exercise_frequency": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 7.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exercise Frequency"
+          },
+          "mental_health_rating": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mental Health Rating"
+          },
+          "part_time_job": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Yes",
+                  "No"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Time Job"
+          },
+          "diet_quality": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Poor",
+                  "Fair",
+                  "Good"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diet Quality"
+          },
+          "internet_quality": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Poor",
+                  "Average",
+                  "Good"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internet Quality"
+          },
+          "extracurricular_participation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Yes",
+                  "No"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extracurricular Participation"
+          }
+        },
+        "type": "object",
+        "title": "HabitChangesInput",
+        "description": "Habitos opcionales que el usuario modifica en el simulador."
+      },
+      "SimulationRequest": {
+        "properties": {
+          "current_habits": {
+            "$ref": "#/components/schemas/StudentHabitsInput"
+          },
+          "changes": {
+            "$ref": "#/components/schemas/HabitChangesInput"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_habits",
+          "changes"
+        ],
+        "title": "SimulationRequest",
+        "description": "Peticion para simular escenarios comparando habitos actuales vs modificados.",
+        "example": {
+          "changes": {
+            "sleep_hours": 8.0,
+            "study_hours_per_day": 6.0
+          },
+          "current_habits": {
+            "age": 20,
+            "attendance_percentage": 88.0,
+            "diet_quality": "Good",
+            "exercise_frequency": 3,
+            "extracurricular_participation": "Yes",
+            "gender": "Female",
+            "internet_quality": "Good",
+            "mental_health_rating": 7,
+            "netflix_hours": 1.5,
+            "parental_education_level": "Bachelor",
+            "part_time_job": "No",
+            "sleep_hours": 7.0,
+            "social_media_hours": 2.5,
+            "study_hours_per_day": 4.5
+          }
+        }
+      },
+      "StudentHabitsInput": {
+        "properties": {
+          "age": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 10.0,
+            "title": "Age",
+            "description": "Edad del estudiante en anios"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "Female",
+              "Male",
+              "Other"
+            ],
+            "title": "Gender"
+          },
+          "study_hours_per_day": {
+            "type": "number",
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Study Hours Per Day"
+          },
+          "social_media_hours": {
+            "type": "number",
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Social Media Hours"
+          },
+          "netflix_hours": {
+            "type": "number",
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Netflix Hours"
+          },
+          "part_time_job": {
+            "type": "string",
+            "enum": [
+              "Yes",
+              "No"
+            ],
+            "title": "Part Time Job"
+          },
+          "attendance_percentage": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Attendance Percentage"
+          },
+          "sleep_hours": {
+            "type": "number",
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Sleep Hours"
+          },
+          "diet_quality": {
+            "type": "string",
+            "enum": [
+              "Poor",
+              "Fair",
+              "Good"
+            ],
+            "title": "Diet Quality"
+          },
+          "exercise_frequency": {
+            "type": "integer",
+            "maximum": 7.0,
+            "minimum": 0.0,
+            "title": "Exercise Frequency"
+          },
+          "parental_education_level": {
+            "type": "string",
+            "enum": [
+              "None",
+              "High School",
+              "Bachelor",
+              "Master"
+            ],
+            "title": "Parental Education Level"
+          },
+          "internet_quality": {
+            "type": "string",
+            "enum": [
+              "Poor",
+              "Average",
+              "Good"
+            ],
+            "title": "Internet Quality"
+          },
+          "mental_health_rating": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Mental Health Rating"
+          },
+          "extracurricular_participation": {
+            "type": "string",
+            "enum": [
+              "Yes",
+              "No"
+            ],
+            "title": "Extracurricular Participation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "age",
+          "gender",
+          "study_hours_per_day",
+          "social_media_hours",
+          "netflix_hours",
+          "part_time_job",
+          "attendance_percentage",
+          "sleep_hours",
+          "diet_quality",
+          "exercise_frequency",
+          "parental_education_level",
+          "internet_quality",
+          "mental_health_rating",
+          "extracurricular_participation"
+        ],
+        "title": "StudentHabitsInput",
+        "description": "Datos de entrada completos de los habitos de un estudiante.",
+        "example": {
+          "age": 20,
+          "attendance_percentage": 88.0,
+          "diet_quality": "Good",
+          "exercise_frequency": 3,
+          "extracurricular_participation": "Yes",
+          "gender": "Female",
+          "internet_quality": "Good",
+          "mental_health_rating": 7,
+          "netflix_hours": 1.5,
+          "parental_education_level": "Bachelor",
+          "part_time_job": "No",
+          "sleep_hours": 7.0,
+          "social_media_hours": 2.5,
+          "study_hours_per_day": 4.5
+        }
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
