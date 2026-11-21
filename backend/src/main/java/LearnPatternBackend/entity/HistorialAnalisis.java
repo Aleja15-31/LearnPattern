@@ -31,8 +31,14 @@ public class HistorialAnalisis {
     @Column(name = "nota_examen_estimada", precision = 5, scale = 2)
     private BigDecimal notaExamenEstimada;
 
+    @Column(name = "nota_escala_5", precision = 3, scale = 2)
+    private BigDecimal notaEscala5;
+
     @Column(name = "patron_aprendizaje", length = 100)
     private String patronAprendizaje;
+
+    @Column(name = "resultado_json", columnDefinition = "TEXT")
+    private String resultadoJson;
 
     @Column(name = "fecha_creacion", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime fechaCreacion;
@@ -68,12 +74,28 @@ public class HistorialAnalisis {
         this.notaExamenEstimada = notaExamenEstimada;
     }
 
+    public BigDecimal getNotaEscala5() {
+        return notaEscala5;
+    }
+
+    public void setNotaEscala5(BigDecimal notaEscala5) {
+        this.notaEscala5 = notaEscala5;
+    }
+
     public String getPatronAprendizaje() {
         return patronAprendizaje;
     }
 
     public void setPatronAprendizaje(String patronAprendizaje) {
         this.patronAprendizaje = patronAprendizaje;
+    }
+
+    public String getResultadoJson() {
+        return resultadoJson;
+    }
+
+    public void setResultadoJson(String resultadoJson) {
+        this.resultadoJson = resultadoJson;
     }
 
     public OffsetDateTime getFechaCreacion() {

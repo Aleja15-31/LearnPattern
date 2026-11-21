@@ -1,7 +1,9 @@
 package LearnPatternBackend.controller;
 
-import LearnPatternBackend.entity.Usuario;
+import LearnPatternBackend.dto.UsuarioRequest;
+import LearnPatternBackend.dto.UsuarioResponse;
 import LearnPatternBackend.service.UsuarioService;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -19,19 +21,19 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public ResponseEntity<Usuario> crearUsuario(
-            @RequestBody Usuario usuario) {
-        Usuario nuevoUsuario = usuarioService.crearUsuario(usuario);
+    public ResponseEntity<UsuarioResponse> crearUsuario(
+            @Valid @RequestBody UsuarioRequest request) {
+        UsuarioResponse nuevoUsuario = usuarioService.crearUsuario(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevoUsuario);
     }
 
     @GetMapping
-    public ResponseEntity<List<Usuario>> listarUsuarios() {
+    public ResponseEntity<List<UsuarioResponse>> listarUsuarios() {
         return ResponseEntity.ok(usuarioService.listarUsuarios());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> buscarPorId(@PathVariable UUID id) {
+    public ResponseEntity<UsuarioResponse> buscarPorId(@PathVariable UUID id) {
         return usuarioService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());

@@ -9,4 +9,6 @@ public interface HistorialAnalisisRepository
         extends JpaRepository<HistorialAnalisis, UUID> {
 
     List<HistorialAnalisis> findByRegistroHabitoId(UUID registroHabitosId);
+
+    List<HistorialAnalisis> findByRegistroHabitoUsuarioIdOrderByFechaCreacionDesc(UUID usuarioId);
 }
