@@ -27,6 +27,7 @@ export default function AnalisisPage({ analysis, habits, onNavigate }) {
   const [simAttendance, setSimAttendance] = useState(
     Number(habits?.porcentajeAsistencia ?? 85)
   );
+  const [simModel, setSimModel] = useState(detalle?.best_model || "linear_regression");
   const [simResult, setSimResult] = useState(null);
   const [simLoading, setSimLoading] = useState(false);
   const [simError, setSimError] = useState("");
@@ -83,13 +84,29 @@ export default function AnalisisPage({ analysis, habits, onNavigate }) {
     return `${diff >= 0 ? "+" : ""}${diff} ${unit} vs promedio`;
   }
 
+  const selectedSimData = simResult?.model_comparison?.[simModel];
+  const simCurrent100 =
+    selectedSimData?.current ??
+    detalle.model_comparison?.[simModel]?.predicted_score ??
+    detalle.estimated_score;
+  const simCurrent5 =
+    selectedSimData?.current_scale_5 ??
+    detalle.model_comparison?.[simModel]?.predicted_score_scale_5 ??
+    detalle.estimated_score_scale_5;
+  const simNew100 = selectedSimData?.simulated ?? simResult?.simulated_score;
+  const simNew5 =
+    selectedSimData?.simulated_scale_5 ??
+    (simNew100 != null ? Number((simNew100 / 20).toFixed(2)) : null);
+  const simDiff100 = selectedSimData?.difference ?? simResult?.score_difference;
+
   return (
     <>
       <div>
         <div className="page-eyebrow">ANÁLISIS DE MIS HÁBITOS</div>
         <h1 className="page-title">Analiza tus hábitos</h1>
         <p className="page-subtitle">
-          Explora tus hábitos frente al promedio del dataset y simula diferentes escenarios.
+          Compara tus hábitos reales con el promedio del dataset y simula cambios con ambos
+          modelos de IA.
         </p>
       </div>
 
@@ -139,9 +156,9 @@ export default function AnalisisPage({ analysis, habits, onNavigate }) {
       {/* Grafica de barras + tarjeta resumen morada */}
       <section className="grid-2" style={{ gridTemplateColumns: "1.5fr 1fr" }}>
         <div className="card">
-          <h3 style={{ fontSize: "1rem", marginBottom: 4 }}>Mis hábitos</h3>
+          <h3 style={{ fontSize: "1rem", marginBottom: 4 }}>Mis hábitos frente al promedio</h3>
           <p style={{ fontSize: "0.82rem", color: "var(--muted)", marginBottom: 16 }}>
-            Horas por día: tú frente al promedio de los 1.000 registros
+            Horas por día: tus hábitos guardados frente al promedio de los 1.000 estudiantes
           </p>
           <div style={{ width: "100%", height: 250 }}>
             <ResponsiveContainer>
@@ -168,7 +185,7 @@ export default function AnalisisPage({ analysis, habits, onNavigate }) {
           }}
         >
           <div style={{ fontSize: "0.78rem", opacity: 0.85, fontWeight: 700 }}>
-            MI CALIFICACIÓN ESTIMADA
+            TU NOTA ESTIMADA ACTUAL
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <div className="score-ring" style={{ width: 112, height: 112, borderWidth: 6 }}>
@@ -179,11 +196,11 @@ export default function AnalisisPage({ analysis, habits, onNavigate }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: "0.86rem" }}>
               <div>
-                <div style={{ opacity: 0.75, fontSize: "0.7rem" }}>EQUIVALENCIA</div>
+                <div style={{ opacity: 0.75, fontSize: "0.7rem" }}>EQUIVALENCIA (0 A 5)</div>
                 <strong>{detalle.estimated_score_scale_5} / 5.0</strong>
               </div>
               <div>
-                <div style={{ opacity: 0.75, fontSize: "0.7rem" }}>MODELO</div>
+                <div style={{ opacity: 0.75, fontSize: "0.7rem" }}>MODELO PRINCIPAL</div>
                 <strong>{MODEL_LABELS[detalle.best_model] || detalle.best_model}</strong>
               </div>
               <div>
@@ -197,15 +214,46 @@ export default function AnalisisPage({ analysis, habits, onNavigate }) {
 
       {/* Simulador interactivo */}
       <section className="card">
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <div className="step-num" style={{ borderRadius: 10 }}>
-            <SlidersHorizontal size={16} />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 12,
+            marginBottom: 8,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="step-num" style={{ borderRadius: 10 }}>
+              <SlidersHorizontal size={16} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: "1.02rem" }}>Explora diferentes escenarios</h3>
+              <p style={{ fontSize: "0.83rem", color: "var(--muted)" }}>
+                Mueve los controles y elige si quieres ver la simulación con Regresión Lineal o
+                Red Neuronal Densa
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 style={{ fontSize: "1.02rem" }}>Explora diferentes escenarios</h3>
-            <p style={{ fontSize: "0.83rem", color: "var(--muted)" }}>
-              Mueve los controles y compara en vivo cómo cambia la estimación del modelo
-            </p>
+
+          <div className="radio-row" style={{ minWidth: 310 }}>
+            <button
+              type="button"
+              className={`radio-chip ${simModel === "linear_regression" ? "selected" : ""}`}
+              style={{ padding: "7px 12px", fontSize: "0.82rem" }}
+              onClick={() => setSimModel("linear_regression")}
+            >
+              Regresión lineal
+            </button>
+            <button
+              type="button"
+              className={`radio-chip ${simModel === "neural_network" ? "selected" : ""}`}
+              style={{ padding: "7px 12px", fontSize: "0.82rem" }}
+              onClick={() => setSimModel("neural_network")}
+            >
+              Red neuronal densa
+            </button>
           </div>
         </div>
 
@@ -308,10 +356,14 @@ export default function AnalisisPage({ analysis, habits, onNavigate }) {
                 gap: 14,
               }}
             >
+              <div style={{ fontSize: "0.76rem", fontWeight: 700, color: "var(--muted)" }}>
+                MODELO VISUALIZADO: {MODEL_LABELS[simModel]?.toUpperCase()}
+              </div>
+
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem" }}>
-                <span style={{ color: "var(--muted)" }}>Calificación estimada actual</span>
+                <span style={{ color: "var(--muted)" }}>Tu nota estimada actual</span>
                 <strong>
-                  {detalle.estimated_score} / 100 ({detalle.estimated_score_scale_5}/5)
+                  {simCurrent100} / 100 ({simCurrent5} / 5.0)
                 </strong>
               </div>
 
@@ -325,18 +377,18 @@ export default function AnalisisPage({ analysis, habits, onNavigate }) {
                   <div style={{ marginTop: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <span style={{ fontSize: "2.1rem", fontWeight: 800, color: "var(--primary)" }}>
-                        {simResult.simulated_score}
+                        {simNew100}
                       </span>
                       <span style={{ color: "var(--muted)", fontWeight: 600 }}>
-                        / 100 ({simResult.simulated_score_scale_5} / 5.0)
+                        / 100 ({simNew5} / 5.0)
                       </span>
                       <span
                         className={`badge ${
-                          simResult.score_difference >= 0 ? "badge-success" : "badge-danger"
+                          simDiff100 >= 0 ? "badge-success" : "badge-danger"
                         }`}
                       >
-                        {simResult.score_difference >= 0 ? "+" : ""}
-                        {simResult.score_difference} pts
+                        {simDiff100 >= 0 ? "+" : ""}
+                        {simDiff100} pts
                       </span>
                     </div>
                     <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: 6 }}>

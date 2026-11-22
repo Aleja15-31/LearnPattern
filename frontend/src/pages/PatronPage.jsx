@@ -7,7 +7,7 @@ import {
   Tooltip,
   ZAxis,
 } from "recharts";
-import { BookOpen, Moon, Smartphone, Dumbbell, Check, ArrowRight } from "lucide-react";
+import { BookOpen, Moon, Smartphone, Dumbbell, Check, ArrowRight, Sparkles } from "lucide-react";
 
 const CLUSTER_COLORS = ["#c4b5fd", "#6ee7b7", "#93c5fd", "#f9a8d4"];
 
@@ -26,6 +26,7 @@ export default function PatronPage({ analysis, habits, onNavigate }) {
   const groupAvgs = cluster.averages || {};
   const mapPoints = cluster.map_points || [];
   const totalClusters = cluster.total_clusters || 4;
+  const highlights = cluster.highlights || [];
 
   const groupedPoints = Array.from({ length: totalClusters }, (_, cid) =>
     mapPoints.filter((p) => p.cluster_id === cid)
@@ -77,11 +78,11 @@ export default function PatronPage({ analysis, habits, onNavigate }) {
   return (
     <>
       <div>
-        <div className="page-eyebrow">MI PERFIL DE HÁBITOS</div>
+        <div className="page-eyebrow">MI PERFIL DE HÁBITOS (K-MEANS)</div>
         <h1 className="page-title">Tu patrón de aprendizaje</h1>
         <p className="page-subtitle">
-          Descubre a qué grupo de hábitos de K-Means te pareces más (agrupado sin usar la
-          nota).
+          Descubre a qué grupo de hábitos te pareces más y por qué el algoritmo K-Means te
+          ubicó allí.
         </p>
       </div>
 
@@ -91,8 +92,8 @@ export default function PatronPage({ analysis, habits, onNavigate }) {
           <span className="hero-badge">Tu patrón de aprendizaje</span>
           <h2 style={{ fontSize: "2rem" }}>{cluster.label}</h2>
           <p>
-            Según tus datos, tus hábitos diarios se parecen más a los estudiantes de este
-            grupo en el conjunto de datos analizado.
+            {cluster.description ||
+              "Según tus datos, tus hábitos diarios se parecen más a los estudiantes de este grupo."}
           </p>
 
           <div className="stat-pills">
@@ -101,13 +102,13 @@ export default function PatronPage({ analysis, habits, onNavigate }) {
               <div className="stat-pill-value">{totalClusters}</div>
             </div>
             <div className="stat-pill">
-              <div className="stat-pill-label">Estudiantes en tu grupo</div>
-              <div className="stat-pill-value">{cluster.count}</div>
+              <div className="stat-pill-label">Estudiantes en este grupo</div>
+              <div className="stat-pill-value">{cluster.count} de 1.000</div>
             </div>
             <div className="stat-pill">
-              <div className="stat-pill-label">Nota promedio grupo</div>
+              <div className="stat-pill-label">Nota promedio real del grupo</div>
               <div className="stat-pill-value">
-                {cluster.avg_exam_score} ({cluster.avg_exam_score_scale_5}/5)
+                {cluster.avg_exam_score} / 100 ({cluster.avg_exam_score_scale_5} / 5.0)
               </div>
             </div>
           </div>
@@ -166,11 +167,43 @@ export default function PatronPage({ analysis, habits, onNavigate }) {
         </div>
       </section>
 
+      {/* Tarjeta clara: Por que perteneces a este grupo */}
+      {highlights.length > 0 && (
+        <section className="card" style={{ borderColor: "#d8d4fe", background: "#fcfcff" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Sparkles size={18} color="var(--primary)" />
+            <h3 style={{ fontSize: "1rem" }}>¿Por qué perteneces al {cluster.label}?</h3>
+          </div>
+          <p style={{ fontSize: "0.88rem", color: "#344054", marginBottom: 12 }}>
+            Al comparar los hábitos de todos los estudiantes del dataset, K-Means agrupó en
+            el <strong>{cluster.label}</strong> a quienes comparten principalmente estos 3
+            rasgos frente al promedio general:
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {highlights.map((trait, index) => (
+              <span
+                key={index}
+                className="badge badge-primary"
+                style={{ padding: "6px 12px", fontSize: "0.82rem" }}
+              >
+                {index + 1}. {trait}
+              </span>
+            ))}
+          </div>
+          <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: 12 }}>
+            <strong>Sobre la nota promedio del grupo ({cluster.avg_exam_score}/100):</strong>{" "}
+            K-Means formó los grupos mirando únicamente los hábitos (sin ver la nota).
+            Después calculamos el promedio de las notas reales de los {cluster.count}{" "}
+            estudiantes de este grupo para que tengas un punto de referencia.
+          </p>
+        </section>
+      )}
+
       {/* Caracteristicas del grupo */}
       <section className="card">
-        <h3 style={{ fontSize: "1rem", marginBottom: 4 }}>Características del grupo</h3>
+        <h3 style={{ fontSize: "1rem", marginBottom: 4 }}>Características promedio del {cluster.label}</h3>
         <p style={{ fontSize: "0.82rem", color: "var(--muted)", marginBottom: 16 }}>
-          Los hábitos promedio de los estudiantes del {cluster.label}
+          Hábitos promedio de los estudiantes de tu grupo frente a tus datos registrados
         </p>
 
         <div className="grid-4">
@@ -273,7 +306,6 @@ export default function PatronPage({ analysis, habits, onNavigate }) {
                     borderRadius: 999,
                   }}
                 >
-                  {/* Marca promedio grupo */}
                   <div
                     title={`Promedio grupo: ${item.group} ${item.unit}`}
                     style={{
@@ -286,7 +318,6 @@ export default function PatronPage({ analysis, habits, onNavigate }) {
                       borderRadius: 2,
                     }}
                   />
-                  {/* Punto del usuario */}
                   <div
                     title={`Tú: ${item.user} ${item.unit}`}
                     style={{

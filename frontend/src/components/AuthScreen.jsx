@@ -10,6 +10,14 @@ export default function AuthScreen({ onAuthSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  function switchMode(newMode) {
+    setMode(newMode);
+    setError("");
+    setNombre("");
+    setCorreo("");
+    setContrasena("");
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -55,20 +63,14 @@ export default function AuthScreen({ onAuthSuccess }) {
           <button
             type="button"
             className={`auth-tab ${mode === "login" ? "active" : ""}`}
-            onClick={() => {
-              setMode("login");
-              setError("");
-            }}
+            onClick={() => switchMode("login")}
           >
             Iniciar sesión
           </button>
           <button
             type="button"
             className={`auth-tab ${mode === "register" ? "active" : ""}`}
-            onClick={() => {
-              setMode("register");
-              setError("");
-            }}
+            onClick={() => switchMode("register")}
           >
             Crear cuenta
           </button>
@@ -81,14 +83,20 @@ export default function AuthScreen({ onAuthSuccess }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form
+          onSubmit={handleSubmit}
+          autoComplete="off"
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        >
           {mode === "register" && (
             <div className="field">
-              <label htmlFor="nombre">Nombre completo</label>
+              <label htmlFor="lp-nombre">Nombre completo</label>
               <input
-                id="nombre"
+                id="lp-nombre"
+                name="lp_nombre"
                 type="text"
-                placeholder="Ej. Paula Alejandra"
+                placeholder="Paula Pulido"
+                autoComplete="off"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 required
@@ -97,11 +105,13 @@ export default function AuthScreen({ onAuthSuccess }) {
           )}
 
           <div className="field">
-            <label htmlFor="correo">Correo electrónico</label>
+            <label htmlFor="lp-correo">Correo electrónico</label>
             <input
-              id="correo"
+              id="lp-correo"
+              name="lp_correo"
               type="email"
-              placeholder="estudiante@correo.edu.co"
+              placeholder="estudiante@gmail.com"
+              autoComplete="off"
               value={correo}
               onChange={(e) => setCorreo(e.target.value)}
               required
@@ -109,11 +119,13 @@ export default function AuthScreen({ onAuthSuccess }) {
           </div>
 
           <div className="field">
-            <label htmlFor="contrasena">Contraseña</label>
+            <label htmlFor="lp-contrasena">Contraseña</label>
             <input
-              id="contrasena"
+              id="lp-contrasena"
+              name="lp_contrasena"
               type="password"
               placeholder="Mínimo 6 caracteres"
+              autoComplete="new-password"
               minLength={6}
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
