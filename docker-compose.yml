@@ -1,17 +1,17 @@
-
 services:
   postgres:
     image: postgres:17-alpine
     container_name: learnpattern-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: learnpattern_db
-      POSTGRES_USER: learnpattern_user
-      POSTGRES_PASSWORD: NovoaSierra2026
+      POSTGRES_DB: ${POSTGRES_DB:-learnpattern_db}
+      POSTGRES_USER: ${POSTGRES_USER:-learnpattern_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-learnpattern_local_2026}
     ports:
       - "5432:5432"
     volumes:
       - learnpattern_data:/var/lib/postgresql/data
+      - ./database/scripts:/docker-entrypoint-initdb.d
 
 volumes:
   learnpattern_data:

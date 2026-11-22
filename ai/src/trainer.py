@@ -7,6 +7,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error, silhouette_score
+from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -26,6 +27,38 @@ from src.config import (
     TARGET_COLUMN,
 )
 from src.data_loader import load_and_clean_dataset, split_features_and_target
+
+
+CLUSTER_TRAIT_TEXTS = {
+    "study_hours_per_day": (
+        "dedicar mas horas al estudio ({val} h/dia)",
+        "dedicar menos horas al estudio ({val} h/dia)",
+    ),
+    "sleep_hours": (
+        "dormir mas horas ({val} h/dia)",
+        "dormir menos horas ({val} h/dia)",
+    ),
+    "social_media_hours": (
+        "pasar mas tiempo en redes sociales ({val} h/dia)",
+        "usar menos redes sociales ({val} h/dia)",
+    ),
+    "netflix_hours": (
+        "ver mas series o Netflix ({val} h/dia)",
+        "ver menos series o Netflix ({val} h/dia)",
+    ),
+    "attendance_percentage": (
+        "mantener mayor asistencia a clases ({val}%)",
+        "tener menor asistencia a clases ({val}%)",
+    ),
+    "exercise_frequency": (
+        "hacer ejercicio con mas frecuencia ({val} veces/sem)",
+        "hacer menos ejercicio semanal ({val} veces/sem)",
+    ),
+    "mental_health_rating": (
+        "reportar mayor bienestar emocional ({val}/10)",
+        "reportar menor bienestar emocional ({val}/10)",
+    ),
+}
 
 
 def build_preprocessor() -> ColumnTransformer:
@@ -52,8 +85,38 @@ def evaluate_predictions(y_true: pd.Series, y_pred: np.ndarray) -> dict[str, flo
     }
 
 
+def _describe_cluster(
+    group_df: pd.DataFrame,
+    full_df: pd.DataFrame,
+) -> tuple[str, list[str]]:
+    """Genera una explicacion clara y basada en datos de por que existe este grupo."""
+    diffs = []
+    for col in KMEANS_FEATURES:
+        group_mean = float(group_df[col].mean())
+        overall_mean = float(full_df[col].mean())
+        overall_std = float(full_df[col].std()) or 1.0
+        z_diff = (group_mean - overall_mean) / overall_std
+        diffs.append((abs(z_diff), z_diff, col, round(group_mean, 2)))
+
+    # Tomar los 3 rasgos que mas distinguen a este grupo frente al promedio general
+    diffs.sort(key=lambda item: item[0], reverse=True)
+    top_traits = diffs[:3]
+
+    highlights: list[str] = []
+    for _, z_diff, col, val in top_traits:
+        high_tpl, low_tpl = CLUSTER_TRAIT_TEXTS[col]
+        phrase = (high_tpl if z_diff >= 0 else low_tpl).format(val=val)
+        highlights.append(phrase)
+
+    description = (
+        f"Estudiantes que se caracterizan principalmente por {highlights[0]}, "
+        f"{highlights[1]} y {highlights[2]} frente al promedio general."
+    )
+    return description, highlights
+
+
 def train_and_save_all() -> dict:
-    """Entrena Regresion Lineal, Red Neuronal Densa y K-Means, y guarda los artefactos."""
+    """Entrena Regresion Lineal, Red Neuronal Densa optimizada y K-Means, y guarda los artefactos."""
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
     df = load_and_clean_dataset()
@@ -75,30 +138,42 @@ def train_and_save_all() -> dict:
     linear_metrics = evaluate_predictions(y_test, linear_pipeline.predict(X_test))
 
     # 3. Modelo supervisado 2: Red Neuronal Densa (capas ocultas ReLU + salida lineal)
-    neural_pipeline = Pipeline(
+    neural_base = Pipeline(
         steps=[
             ("preprocessor", build_preprocessor()),
             (
                 "model",
                 MLPRegressor(
-                    hidden_layer_sizes=(64, 32),
                     activation="relu",
-                    solver="adam",
-                    alpha=0.05,
-                    learning_rate_init=0.005,
-                    max_iter=1500,
+                    solver="lbfgs",
+                    max_iter=2000,
                     random_state=RANDOM_STATE,
                 ),
             ),
         ]
     )
-    neural_pipeline.fit(X_train, y_train)
+    param_grid = {
+        "model__hidden_layer_sizes": [(16,), (32, 16), (16, 8)],
+        "model__alpha": [1.0, 5.0, 10.0, 20.0],
+    }
+    neural_search = GridSearchCV(
+        neural_base,
+        param_grid=param_grid,
+        scoring="neg_root_mean_squared_error",
+        cv=5,
+        n_jobs=-1,
+    )
+    neural_search.fit(X_train, y_train)
+    neural_pipeline = neural_search.best_estimator_
     neural_metrics = evaluate_predictions(y_test, neural_pipeline.predict(X_test))
+    neural_best_params = {
+        "hidden_layer_sizes": list(neural_search.best_params_["model__hidden_layer_sizes"]),
+        "alpha": float(neural_search.best_params_["model__alpha"]),
+    }
 
-    # Seleccionar automaticamente el modelo con menor error RMSE
     best_model_key = (
         "neural_network"
-        if neural_metrics["rmse"] < linear_metrics["rmse"]
+        if neural_metrics["rmse"] <= linear_metrics["rmse"]
         else "linear_regression"
     )
 
@@ -121,23 +196,24 @@ def train_and_save_all() -> dict:
     scaled_habits = kmeans_pipeline.named_steps["scaler"].transform(X_habits)
     kmeans_silhouette = round(float(silhouette_score(scaled_habits, cluster_labels)), 4)
 
-    # Proyeccion 2D con PCA para dibujar el mapa de grupos en el frontend
     pca = PCA(n_components=2, random_state=RANDOM_STATE)
     coords_2d = pca.fit_transform(scaled_habits)
 
-    # Analizar caracteristicas y nota promedio de cada grupo formado
     df_with_clusters = df.copy()
     df_with_clusters["cluster_id"] = cluster_labels
 
     clusters_summary = []
     for cid in range(KMEANS_N_CLUSTERS):
         group_df = df_with_clusters[df_with_clusters["cluster_id"] == cid]
+        description, highlights = _describe_cluster(group_df, df)
         clusters_summary.append(
             {
                 "cluster_id": int(cid),
                 "label": f"Grupo {cid + 1}",
                 "count": int(len(group_df)),
                 "avg_exam_score": round(float(group_df[TARGET_COLUMN].mean()), 2),
+                "description": description,
+                "highlights": highlights,
                 "averages": {
                     col: round(float(group_df[col].mean()), 2)
                     for col in KMEANS_FEATURES
@@ -145,7 +221,6 @@ def train_and_save_all() -> dict:
             }
         )
 
-    # Muestra de puntos 2D para graficar el mapa de grupos sin sobrecargar el JSON
     sample_size = min(250, len(df))
     rng = np.random.default_rng(RANDOM_STATE)
     sample_indices = rng.choice(len(df), size=sample_size, replace=False)
@@ -158,7 +233,6 @@ def train_and_save_all() -> dict:
         for i in sample_indices
     ]
 
-    # Promedios generales del dataset para comparaciones en el frontend
     dataset_averages = {
         col: round(float(df[col].mean()), 2) for col in KMEANS_FEATURES
     }
@@ -170,6 +244,7 @@ def train_and_save_all() -> dict:
         "test_rows": int(len(X_test)),
         "train_mean_score": round(train_mean_score, 2),
         "best_model": best_model_key,
+        "neural_network_params": neural_best_params,
         "metrics": {
             "baseline": baseline_metrics,
             "linear_regression": linear_metrics,
@@ -184,7 +259,6 @@ def train_and_save_all() -> dict:
         "dataset_averages": dataset_averages,
     }
 
-    # Guardar modelos y metadatos en ai/artifacts/
     joblib.dump(linear_pipeline, LINEAR_MODEL_PATH)
     joblib.dump(neural_pipeline, NEURAL_MODEL_PATH)
     joblib.dump(kmeans_pipeline, KMEANS_PIPELINE_PATH)
@@ -200,13 +274,14 @@ if __name__ == "__main__":
     print("=== ENTRENAMIENTO COMPLETADO ===")
     print(f"Baseline (promedio {info['train_mean_score']}): {info['metrics']['baseline']}")
     print(f"Regresion Lineal: {info['metrics']['linear_regression']}")
-    print(f"Red Neuronal Densa: {info['metrics']['neural_network']}")
+    print(
+        f"Red Neuronal Densa {info['neural_network_params']}: "
+        f"{info['metrics']['neural_network']}"
+    )
     print(f"Mejor modelo (menor RMSE): {info['best_model']}")
-    print(f"K-Means ({info['kmeans']['n_clusters']} grupos) | Silhouette: {info['kmeans']['silhouette_score']}")
+    print(
+        f"K-Means ({info['kmeans']['n_clusters']} grupos) | "
+        f"Silhouette: {info['kmeans']['silhouette_score']}"
+    )
     for c in info["kmeans"]["clusters"]:
-        print(
-            f"  - {c['label']}: {c['count']} estudiantes | "
-            f"Nota promedio: {c['avg_exam_score']} | "
-            f"Estudio: {c['averages']['study_hours_per_day']}h | "
-            f"Sueno: {c['averages']['sleep_hours']}h"
-        )
+        print(f"  - {c['label']} ({c['count']} est., prom {c['avg_exam_score']}): {c['description']}")

@@ -19,6 +19,27 @@ const TAB_TITLES = {
   recomendaciones: "Recomendaciones",
 };
 
+function toHabitsPayload(registro) {
+  if (!registro) return null;
+  return {
+    usuarioId: registro.usuarioId,
+    edad: Number(registro.edad),
+    genero: registro.genero,
+    horasEstudioDia: Number(registro.horasEstudioDia),
+    horasRedesSociales: Number(registro.horasRedesSociales),
+    horasNetflix: Number(registro.horasNetflix),
+    trabajoMedioTiempo: Boolean(registro.trabajoMedioTiempo),
+    porcentajeAsistencia: Number(registro.porcentajeAsistencia),
+    horasSueno: Number(registro.horasSueno),
+    calidadAlimentacion: registro.calidadAlimentacion,
+    frecuenciaEjercicio: Number(registro.frecuenciaEjercicio),
+    nivelEducacionPadres: registro.nivelEducacionPadres,
+    calidadInternet: registro.calidadInternet,
+    valoracionSaludMental: Number(registro.valoracionSaludMental),
+    participaExtracurriculares: Boolean(registro.participaExtracurriculares),
+  };
+}
+
 export default function App() {
   const [usuario, setUsuario] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -31,12 +52,30 @@ export default function App() {
   const [evalLoading, setEvalLoading] = useState(false);
   const [evalError, setEvalError] = useState("");
 
+  async function loadHabitsForAnalysis(analysisItem) {
+    if (!analysisItem?.registroHabitosId) {
+      setCurrentHabits(null);
+      return;
+    }
+    try {
+      const registro = await api.getRegistroHabito(analysisItem.registroHabitosId);
+      setCurrentHabits(toHabitsPayload(registro));
+    } catch {
+      setCurrentHabits(null);
+    }
+  }
+
   async function loadUserHistory() {
     try {
       const sesiones = await api.getMisAnalisis();
-      setHistorial(sesiones || []);
-      if (sesiones && sesiones.length > 0 && !currentAnalysis) {
-        setCurrentAnalysis(sesiones[0]);
+      const lista = sesiones || [];
+      setHistorial(lista);
+      if (lista.length > 0) {
+        setCurrentAnalysis(lista[0]);
+        await loadHabitsForAnalysis(lista[0]);
+      } else {
+        setCurrentAnalysis(null);
+        setCurrentHabits(null);
       }
     } catch {
       setHistorial([]);
@@ -99,8 +138,9 @@ export default function App() {
     }
   }
 
-  function handleSelectSession(sessionItem) {
+  async function handleSelectSession(sessionItem) {
     setCurrentAnalysis(sessionItem);
+    await loadHabitsForAnalysis(sessionItem);
     navigateTo("resultado");
   }
 
