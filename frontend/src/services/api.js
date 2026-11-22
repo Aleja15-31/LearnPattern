@@ -1,7 +1,10 @@
 
+const RAW_API_URL = import.meta.env.VITE_API_URL;
+
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:8080";
+  RAW_API_URL !== undefined
+    ? RAW_API_URL.replace(/\/$/, "")
+    : "http://localhost:8080";
 
 const TOKEN_KEY = "learnpattern_token";
 
