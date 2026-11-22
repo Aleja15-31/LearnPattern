@@ -1,0 +1,112 @@
+name: LearnPattern CI/CD
+
+on:
+  push:
+    branches: [main, develop, "feature/**"]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  ai-tests:
+    name: IA Python (Entrenamiento + Pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: ai/requirements.txt
+
+      - name: Instalar dependencias de IA
+        run: pip install -r requirements.txt
+
+      - name: Entrenar modelos y ejecutar 15 pruebas
+        run: |
+          python -m src.trainer
+          python -m pytest -v
+
+  backend-tests:
+    name: Backend Java 21 (Seguridad + Integracion)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: learnpattern_db
+          POSTGRES_USER: learnpattern_user
+          POSTGRES_PASSWORD: ci_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U learnpattern_user -d learnpattern_db"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+          cache: "maven"
+
+      - name: Ejecutar 16 pruebas de Spring Boot + Seguridad
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: learnpattern_db
+          POSTGRES_USER: learnpattern_user
+          POSTGRES_PASSWORD: ci_test_password
+          JWT_SECRET: LearnPattern_CI_Test_Secret_Key_2026_Min_32_Chars
+        run: |
+          sed -i 's/\r$//' mvnw
+          chmod +x mvnw
+          ./mvnw test -B
+
+  frontend-build:
+    name: Frontend React + Vite (Build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias y compilar
+        run: |
+          npm ci
+          npm run build
+
+  docker-verify:
+    name: Verificar construccion de imagenes Docker
+    runs-on: ubuntu-latest
+    needs: [ai-tests, backend-tests, frontend-build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir imagen de IA
+        run: docker build -t learnpattern-ai:ci ./ai
+
+      - name: Construir imagen de Backend
+        run: docker build -t learnpattern-backend:ci ./backend
+
+      - name: Construir imagen de Frontend
+        run: docker build -t learnpattern-frontend:ci ./frontend
