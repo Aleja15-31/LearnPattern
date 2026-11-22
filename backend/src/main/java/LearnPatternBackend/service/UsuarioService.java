@@ -7,6 +7,7 @@ import LearnPatternBackend.repository.UsuarioRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(
+            UsuarioRepository usuarioRepository,
+            PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public UsuarioResponse crearUsuario(UsuarioRequest request) {
@@ -31,8 +36,7 @@ public class UsuarioService {
         Usuario usuario = new Usuario();
         usuario.setNombre(request.nombre().trim());
         usuario.setCorreo(correoNormalizado);
-        // En la rama feature/seguridad reemplazaremos esto por BCryptPasswordEncoder
-        usuario.setHashContrasena(request.contrasena());
+        usuario.setHashContrasena(passwordEncoder.encode(request.contrasena()));
 
         Usuario guardado = usuarioRepository.save(usuario);
         return UsuarioResponse.fromEntity(guardado);
