@@ -3,13 +3,17 @@ package LearnPatternBackend.controller;
 import LearnPatternBackend.dto.HistorialAnalisisResponse;
 import LearnPatternBackend.dto.RegistroHabitoRequest;
 import LearnPatternBackend.dto.SimulacionRequest;
+import LearnPatternBackend.entity.Usuario;
 import LearnPatternBackend.service.AnalisisService;
+import LearnPatternBackend.service.AuthService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,14 +21,23 @@ import org.springframework.web.bind.annotation.*;
 public class AnalisisController {
 
     private final AnalisisService analisisService;
+    private final AuthService authService;
 
-    public AnalisisController(AnalisisService analisisService) {
+    public AnalisisController(AnalisisService analisisService, AuthService authService) {
         this.analisisService = analisisService;
+        this.authService = authService;
     }
 
     @PostMapping("/evaluar")
     public ResponseEntity<HistorialAnalisisResponse> evaluarHabitos(
-            @Valid @RequestBody RegistroHabitoRequest request) {
+            @Valid @RequestBody RegistroHabitoRequest request,
+            Authentication authentication) {
+        Usuario actual = authService.obtenerEntidadPorCorreo(authentication.getName());
+        if (!actual.getId().equals(request.usuarioId())) {
+            throw new AccessDeniedException(
+                    "No puedes registrar ni evaluar habitos para otro usuario."
+            );
+        }
         HistorialAnalisisResponse resultado = analisisService.evaluarYGuardar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(resultado);
     }
@@ -40,9 +53,21 @@ public class AnalisisController {
         return ResponseEntity.ok(analisisService.obtenerInfoModelos());
     }
 
+    @GetMapping("/mios")
+    public ResponseEntity<List<HistorialAnalisisResponse>> listarMisAnalisis(
+            Authentication authentication) {
+        Usuario actual = authService.obtenerEntidadPorCorreo(authentication.getName());
+        return ResponseEntity.ok(analisisService.listarPorUsuario(actual.getId()));
+    }
+
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<List<HistorialAnalisisResponse>> listarPorUsuario(
-            @PathVariable UUID usuarioId) {
+            @PathVariable UUID usuarioId,
+            Authentication authentication) {
+        Usuario actual = authService.obtenerEntidadPorCorreo(authentication.getName());
+        if (!actual.getId().equals(usuarioId)) {
+            throw new AccessDeniedException("No tienes permiso para ver el historial de otro usuario.");
+        }
         return ResponseEntity.ok(analisisService.listarPorUsuario(usuarioId));
     }
 
