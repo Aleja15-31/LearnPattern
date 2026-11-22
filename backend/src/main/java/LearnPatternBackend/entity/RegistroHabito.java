@@ -66,7 +66,13 @@ public class RegistroHabito {
     @Column(name = "participa_extracurriculares", nullable = false)
     private boolean participaExtracurriculares;
 
-    @Column(name = "fecha_creacion", nullable = false, insertable = false, updatable = false)
+    @Column(
+            name = "fecha_creacion",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            columnDefinition = "TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP"
+    )
     private OffsetDateTime fechaCreacion;
 
     public RegistroHabito() {
